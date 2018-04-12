@@ -76,13 +76,30 @@ function testAzDriver() {
   const config = JSON.parse(fs.readFileSync(azConfigPath))
 
   test('azDriver', (t) => {
-    t.plan(3)
+    t.plan(4)
     const driver = new AzDriver(config)
     const prefix = driver.getReadURLPrefix()
     const s = new Readable()
     s._read = function noop() {}
     s.push('hello world')
     s.push(null)
+
+    const s2 = new Readable()
+    s2._read = function noop() {}
+    s2.push('hello world')
+    s2.push(null)
+
+    const s3 = new Readable()
+    s3._read = function noop() {}
+    s3.push(null)
+
+    const s4 = new Readable()
+    s4._read = function noop() {}
+    s4.push('hello world')
+    s4.push(null)
+
+    const limitDriver = new AzDriver(Object.assign(
+      {}, config, { storageLimit: 20 }))
 
     driver.performWrite(
       { path: '../foo.js'})
@@ -93,13 +110,33 @@ function testAzDriver() {
           storageTopLevel: '12345',
           stream: s,
           contentType: 'application/octet-stream',
-          contentLength: 12 }))
+          contentLength: 11 }))
       .then((readUrl) => {
         t.ok(readUrl.startsWith(prefix), `${readUrl} must start with readUrlPrefix ${prefix}`)
         return fetch(readUrl)
       })
       .then((resp) => resp.text())
       .then((resptxt) => t.equal(resptxt, 'hello world', `Must get back hello world: got back: ${resptxt}`))
+      .then(() => driver.performWrite( // clear out foo2, so we pass the file storage limit check
+        { path: 'foo1.txt',
+          storageTopLevel: '12345',
+          stream: s3,
+          contentType: 'application/octet-stream',
+          contentLength: 0 }))
+      .then(() => limitDriver.performWrite(
+        { path: 'foo1.txt',
+          storageTopLevel: '12345',
+          stream: s2,
+          contentType: 'application/octet-stream',
+          contentLength: 11 }))
+      .then(() => limitDriver.performWrite(
+        { path: 'foo2.txt',
+          storageTopLevel: '12345',
+          stream: s4,
+          contentType: 'application/octet-stream',
+          contentLength: 11 }))
+      .then(() => t.ok(false, 'Should have failed on writing foo2 due to storage limit.') )
+      .catch((err) => t.ok(true, 'Should have failed on writing foo2'))
   })
 }
 

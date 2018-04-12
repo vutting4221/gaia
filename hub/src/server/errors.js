@@ -13,6 +13,7 @@ export class BadPathError {
     this.stack = (new Error(message)).stack
   }
 }
+
 export class NotEnoughProofError {
   constructor (message) {
     this.name = 'NotEnoughProofError'
@@ -21,4 +22,10 @@ export class NotEnoughProofError {
   }
 }
 
-
+export class StorageLimitError {
+  constructor (message) {
+    this.name = 'StorageLimitError'
+    this.message = message
+    this.stack = (new Error(message)).stack
+  }
+}
