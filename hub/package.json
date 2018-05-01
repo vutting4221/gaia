@@ -24,6 +24,7 @@
     "babel-preset-env": "^1.6.1",
     "babel-preset-flow": "^6.23.0",
     "eslint": "^4.18.1",
+    "flow-bin": "^0.71.0",
     "mocha": "^3.5.3",
     "nock": "^9.1.9",
     "nyc": "^11.4.1",
@@ -45,6 +46,9 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/blockstack/gaia.git"
+  },
+  "engines": {
+    "node": ">=9.0.0"
   },
   "authors": [
     "Aaron Blankstein (aaron@blockstack.com)",
