@@ -3,28 +3,8 @@
 import { StorageAuthentication as StorageAuth } from './StorageAuthentication'
 import { ValidationError } from './errors'
 import logger from 'winston'
-import stream from 'stream'
-
-function bufferStream(input: stream.Readable, maxLength: number) {
-  return new Promise((resolve, reject) => {
-    let buffers = []
-    let length = 0
-    input.on('error', reject)
-    input.on('data', (data) => {
-      if (length < maxLength) {
-        buffers.push(data)
-        length += data.length
-      } else {
-        if (data.length > 0) {
-          reject(new ValidationError('Too much data uploaded'))
-        }
-      }
-    })
-    input.on('end', () => resolve(
-      Buffer.concat(buffers)
-        .slice(0, maxLength)))
-  })
-}
+import { bufferStream, stringToStream, sleep } from './utils'
+import fetch from 'node-fetch'
 
 import type { Readable } from 'stream'
 import type { DriverModel } from './driverModel'
@@ -34,12 +14,14 @@ export class HubServer {
   proofChecker: Object
   whitelist: Array<string>
   serverName: string
+  inboxItemSize: number
   constructor(driver: DriverModel, proofChecker: Object,
               config: { whitelist: Array<string>, servername: string }) {
     this.driver = driver
     this.proofChecker = proofChecker
     this.whitelist = config.whitelist
     this.serverName = config.servername
+    this.inboxItemSize = 160
   }
 
   // throws exception on validation error
@@ -84,21 +66,57 @@ export class HubServer {
       .then(() => this.driver.performWrite(writeCommand))
   }
 
+  confirmInboxWrite(inboxUrl: string, strInbox: string) {
+    let confirmPromise = Promise.reject()
+    for (let i = 0; i < 5; i++) {
+      confirmPromise = confirmPromise
+        .catch(() => sleep(500)
+               .then(() => fetch(inboxUrl))
+               .then(resp => resp.text())
+               .then(outputText => {
+                 if (outputText !== strInbox) {
+                   throw new Error('Failed to propagate changes to inbox.')
+                 }
+               })
+              )
+    }
+
+    return confirmPromise
+  }
+
   putInboxMessage(destinationAddress: string,
                   senderAddress: string,
                   requestHeaders: {'content-type': string,
                                    'content-length': string,
                                    authorization: string},
-                  stream: stream.Readable) {
+                  stream: Readable) {
     this.validate(senderAddress, requestHeaders)
     const contentLength = parseInt(requestHeaders['content-length']) > this.inboxItemSize ?
           this.inboxItemSize : parseInt(requestHeaders['content-length'])
+    const timeStamp = '00000'
 
-    return bufferStream(stream)
+    return bufferStream(stream, contentLength)
       .then( messageBuffer => {
         return this.driver.getReadURLPrefix()
           .then(readUrlPrefix => {
-            const inboxUrl = `${readUrlPrefix}/${destinationAddress}-inbox/`
+            const inboxUrl = `${readUrlPrefix}/${destinationAddress}-meta/inbox.json`
+            // now we must lock!
+            fetch(inboxUrl)
+              .then(resp => resp.json())
+              .then(currentInbox => {
+                currentInbox.push({ message: messageBuffer.toString(),
+                                    timeStamp,
+                                    senderAddress })
+                const strInbox = JSON.stringify(currentInbox)
+                const inboxLength = Buffer.from(strInbox).length
+                const stream = stringToStream(strInbox)
+                return this.driver.performWrite({ storageTopLevel: `${destinationAddress}-meta`,
+                                                  path: 'inbox.json',
+                                                  stream,
+                                                  contentType: 'application/json',
+                                                  inboxLength })
+                  .then(() => this.confirmInboxWrite(inboxUrl, strInbox))
+              })
           })
       })
   }
