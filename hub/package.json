@@ -25,7 +25,7 @@
     "lru-cache": "^5.1.1",
     "nanoid": "^2.1.11",
     "node-fetch": "^2.6.1",
-    "winston": "^3.2.1"
+    "winston": "^3.3.3"
   },
   "devDependencies": {
     "@types/cors": "^2.8.6",
