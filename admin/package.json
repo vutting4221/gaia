@@ -13,7 +13,9 @@
     "lint:fix": "eslint --ext .ts ./src --fix",
     "test:coverage": "cross-env NODE_ENV=test nyc node ./test/test.ts",
     "test": "run-p build lint test:coverage",
-    "test:build": "tsc -p ./test/tsconfig.json"
+    "test:build": "tsc -p ./test/tsconfig.json",
+    "prepare": "npm run snyk-protect",
+    "snyk-protect": "snyk-protect"
   },
   "bin": {
     "blockstack-gaia-admin": "./cmd/index.js"
@@ -38,7 +40,8 @@
     "cross-fetch": "^3.0.4",
     "express": "^4.17.1",
     "express-winston": "^3.3.0",
-    "winston": "^3.2.1"
+    "winston": "^3.2.1",
+    "@snyk/protect": "latest"
   },
   "devDependencies": {
     "@types/cors": "^2.8.6",
@@ -79,5 +82,6 @@
       "text",
       "lcov"
     ]
-  }
+  },
+  "snyk": true
 }
