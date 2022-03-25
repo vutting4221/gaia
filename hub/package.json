@@ -25,7 +25,8 @@
     "lru-cache": "^5.1.1",
     "nanoid": "^2.1.11",
     "node-fetch": "^2.6.1",
-    "winston": "^3.2.1"
+    "winston": "^3.2.1",
+    "@snyk/protect": "latest"
   },
   "devDependencies": {
     "@types/cors": "^2.8.6",
@@ -69,7 +70,9 @@
     "lint:fix": "eslint --ext .ts ./src --fix",
     "test:build": "tsc -p ./test/tsconfig.json",
     "test:coverage": "cross-env NODE_ENV=test LOCAL_DRIVER_CONFIG_TEST_DATA=configs/drivers.json nyc node ./test/src/index.ts",
-    "test": "npm-run-all build --parallel lint test:coverage"
+    "test": "npm-run-all build --parallel lint test:coverage",
+    "prepare": "npm run snyk-protect",
+    "snyk-protect": "snyk-protect"
   },
   "repository": {
     "type": "git",
@@ -100,5 +103,6 @@
       "text",
       "lcov"
     ]
-  }
+  },
+  "snyk": true
 }
