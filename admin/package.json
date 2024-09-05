@@ -37,8 +37,8 @@
     "cors": "^2.8.5",
     "cross-fetch": "^3.0.4",
     "express": "^4.17.1",
-    "express-winston": "^3.3.0",
-    "winston": "^3.2.1"
+    "express-winston": "^4.2.0",
+    "winston": "^3.3.4"
   },
   "devDependencies": {
     "@types/cors": "^2.8.6",
